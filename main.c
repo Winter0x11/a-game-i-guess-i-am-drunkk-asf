@@ -2,9 +2,11 @@
 
 #include <stdbool.h>
 
+#define screenWidth 800
+#define screenHeight 650
 #define MAX_BULLETS 10
 #define MAX_ENEMIES 10
-// 1. Define the Bullet structure
+
 typedef struct {
   Vector2 position;
   Vector2 speed;
@@ -15,12 +17,9 @@ typedef struct {
   Vector2 position;
   Vector2 speed;
   bool alive;
-
 } Enemy;
 
 int main() {
-  const int screenWidth = 800;
-  const int screenHeight = 600;
 
   InitWindow(screenWidth, screenHeight, "woobly waablly");
   SetTargetFPS(60);
@@ -28,27 +27,27 @@ int main() {
   Texture2D rocketship = LoadTexture("res/rocket.png");
   if (rocketship.id == 0) {
     CloseWindow();
-    return 1; // Exit if texture fails to load
+    return 1;
   }
 
   Rectangle source = {0, 0, (float)rocketship.width, (float)rocketship.height};
   Rectangle dest = {100, 100, 128, 128};
 
-  // 2. Bullet configuration variables
+  // Bullet variables
   Bullet bullets[MAX_BULLETS] = {0};
   float bulletSpeedY = -8.0f;
   int bulletWidth = 5;
   int bulletHeight = 15;
-  // Enemy define
+
+  // Enemy variables
   Enemy enemies[MAX_ENEMIES] = {0};
-  float enemySpeedY = -10.0f;
-  float enemyWidth = 7;
-  float enemHeight = 24;
+  float enemyWidth = 20;
+  float enemHeight = 20;
   float spawnTimer = 0.0f;
   float spawnTime = 1.5f;
 
   while (!WindowShouldClose()) {
-    // --- 1. MOVEMENT ---
+    spawnTimer += GetFrameTime();
     if (IsKeyDown(KEY_A))
       dest.x -= 5;
     if (IsKeyDown(KEY_D))
@@ -71,7 +70,7 @@ int main() {
       for (int i = 0; i < MAX_BULLETS; i++) {
         if (!bullets[i].active) {
           bullets[i].position.x =
-              dest.x + (dest.width / 2) - (bulletWidth * 1.0 / 2);
+              dest.x + (dest.width / 2) - (bulletWidth / 2.0f);
           bullets[i].position.y = dest.y;
           bullets[i].speed.y = bulletSpeedY;
           bullets[i].active = true;
@@ -79,15 +78,20 @@ int main() {
         }
       }
     }
+
     if (spawnTimer > spawnTime) {
       for (int e = 0; e < MAX_ENEMIES; e++) {
-        if (enemies[e].alive) {
-          enemies[e].position.x = GetRandomValue(0, screenWidth - enemyWidth);
-          enemies[e].position.y = screenHeight + 40;
+        if (!enemies[e].alive) {
+          enemies[e].position.x =
+              GetRandomValue(0, screenWidth - (int)enemyWidth);
+          enemies[e].position.y = -40;
           enemies[e].alive = true;
+          spawnTimer = 0.0f;
+          break;
         }
       }
     }
+
     for (int i = 0; i < MAX_BULLETS; i++) {
       if (bullets[i].active) {
         bullets[i].position.y += bullets[i].speed.y;
@@ -98,31 +102,36 @@ int main() {
       }
     }
 
-    for (int i = 0; i < MAX_BULLETS; i++) {
+    for (int i = 0; i < MAX_ENEMIES; i++) {
       if (enemies[i].alive) {
-        enemies[i].position.y += 15;
+        enemies[i].position.y += 4;
         if (enemies[i].position.y > screenHeight) {
           enemies[i].alive = false;
         }
       }
     }
-  }
 
-  BeginDrawing();
-  ClearBackground(DARKBLUE);
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
 
-  for (int i = 0; i < MAX_BULLETS; i++) {
-    if (bullets[i].active) {
-      DrawRectangle(bullets[i].position.x, bullets[i].position.y, bulletWidth,
-                    bulletHeight, YELLOW);
+    for (int i = 0; i < MAX_BULLETS; i++) {
+      if (bullets[i].active) {
+        DrawRectangle(bullets[i].position.x, bullets[i].position.y, bulletWidth,
+                      bulletHeight, YELLOW);
+      }
     }
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+      if (enemies[i].alive) {
+        DrawCircle(enemies[i].position.x, enemies[i].position.y, enemyWidth / 2,
+                   RED);
+      }
+    }
+
+    DrawTexturePro(rocketship, source, dest, (Vector2){0, 0}, 0.0f, WHITE);
+
+    EndDrawing();
   }
-
-  // Draw rocket ship on top of bullets
-  DrawTexturePro(rocketship, source, dest, (Vector2){0, 0}, 0.0f, WHITE);
-
-  EndDrawing();
-
   UnloadTexture(rocketship);
   CloseWindow();
 

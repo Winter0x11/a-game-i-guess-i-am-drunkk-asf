@@ -21,16 +21,17 @@ typedef struct {
 
 int main() {
 
-  InitWindow(screenWidth, screenHeight, "woobly waablly");
+  InitWindow(screenWidth, screenHeight, "woobly woobly");
   SetTargetFPS(60);
 
   Texture2D rocketship = LoadTexture("res/rocket.png");
+  Texture2D enemytext = LoadTexture("");
   if (rocketship.id == 0) {
     CloseWindow();
     return 1;
   }
 
-  Rectangle source = {0, 0, (float)rocketship.width, (float)rocketship.height};
+  Rectangle source = {0, 0, rocketship.width, (float)rocketship.height};
   Rectangle dest = {100, 100, 128, 128};
 
   // Bullet variables
@@ -38,6 +39,9 @@ int main() {
   float bulletSpeedY = -8.0f;
   int bulletWidth = 5;
   int bulletHeight = 15;
+
+  float shootTimer = 0.0f;
+  float shootCooldown = 0.2f;
 
   // Enemy variables
   Enemy enemies[MAX_ENEMIES] = {0};
@@ -48,10 +52,12 @@ int main() {
 
   while (!WindowShouldClose()) {
     spawnTimer += GetFrameTime();
+    shootTimer += GetFrameTime();
+
     if (IsKeyDown(KEY_A))
-      dest.x -= 5;
+      dest.x -= 8.0;
     if (IsKeyDown(KEY_D))
-      dest.x += 5;
+      dest.x += 8;
     if (IsKeyDown(KEY_W))
       dest.y -= 5;
     if (IsKeyDown(KEY_S))
@@ -66,7 +72,7 @@ int main() {
     if (dest.y > screenHeight)
       dest.y = -dest.height;
 
-    if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ENTER)) {
       for (int i = 0; i < MAX_BULLETS; i++) {
         if (!bullets[i].active) {
           bullets[i].position.x =
@@ -123,11 +129,28 @@ int main() {
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
       if (enemies[i].alive) {
-        DrawCircle(enemies[i].position.x, enemies[i].position.y, enemyWidth / 2,
-                   RED);
+        DrawCircle(enemies[i].position.x, enemies[i].position.y, 25, RED);
       }
     }
+    // Check Collision
+    for (int b = 0; b < MAX_BULLETS; b++) {
+      if (bullets[b].active) {
+        for (int e = 0; e < MAX_ENEMIES; e++) {
+          if (enemies[e].alive) {
+            if (CheckCollisionCircleRec(
+                    enemies[e].position, enemyWidth / 2,
+                    (Rectangle){bullets[b].position.x, bullets[b].position.y,
+                                bulletWidth, bulletHeight})) {
 
+              enemies[e].alive = false;
+              bullets[b].active = false;
+              break;
+            };
+          }
+        }
+      }
+    }
+    // Draw Rocket
     DrawTexturePro(rocketship, source, dest, (Vector2){0, 0}, 0.0f, WHITE);
 
     EndDrawing();
